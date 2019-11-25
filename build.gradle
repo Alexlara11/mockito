@@ -1,134 +1,32 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
 buildscript {
     repositories {
-        mavenLocal() //for local testing of mockito-release-tools
+        google()
         jcenter()
-        maven { url "https://plugins.gradle.org/m2/" }
+        
     }
-
     dependencies {
-        classpath 'gradle.plugin.nl.javadude.gradle.plugins:license-gradle-plugin:0.14.0'
-        classpath 'net.ltgt.gradle:gradle-errorprone-plugin:0.6'
+        classpath 'com.android.tools.build:gradle:3.5.0'
+        classpath 'com.google.gms:google-services:4.2.0'
 
-        //Using buildscript.classpath so that we can resolve shipkit from maven local, during local testing
-        classpath 'org.shipkit:shipkit:2.1.6'
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
     }
 }
 
-plugins {
-    id 'com.gradle.build-scan' version '2.2.1'
-    id "com.diffplug.gradle.spotless" version "3.24.3"
-    id 'eclipse'
-}
-
-description = 'Mockito mock objects library core API and implementation'
-
-apply plugin: 'base'
-archivesBaseName = "mockito-core"
-
-apply plugin: "org.shipkit.java"
 allprojects {
-    plugins.withId("java") {
-        //Only upload specific modules we select
-        bintrayUpload.enabled = false
-    }
-}
-
-apply from: 'gradle/root/ide.gradle'
-apply from: 'gradle/root/gradle-fix.gradle'
-apply from: 'gradle/java-library.gradle'
-apply from: 'gradle/license.gradle'
-apply from: 'gradle/root/coverage.gradle'
-
-apply from: 'gradle/mockito-core/inline-mock.gradle'
-apply from: 'gradle/mockito-core/osgi.gradle'
-apply from: 'gradle/mockito-core/javadoc.gradle'
-apply from: 'gradle/mockito-core/testing.gradle'
-
-apply from: 'gradle/dependencies.gradle'
-
-allprojects { proj ->
     repositories {
+        google()
         jcenter()
-    }
-    plugins.withId('java') {
-        proj.apply from: "$rootDir/gradle/errorprone.gradle"
-    }
-    tasks.withType(JavaCompile) {
-        //I don't believe those warnings add value given modern IDEs
-        options.warnings = false
-        options.encoding = 'UTF-8'
-    }
-    tasks.withType(Javadoc) {
-        options.addStringOption('Xdoclint:none', '-quiet')
-        options.addStringOption('encoding', 'UTF-8')
-        options.addStringOption('charSet', 'UTF-8')
-        options.setSource('8')
-    }
-    apply plugin: 'checkstyle'
-    checkstyle {
-       configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+        maven()
+                {
+                    url "https://jitpack.io"
+                }
+        
     }
 }
 
-configurations {
-    testUtil //TODO move to separate project
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }
-
-dependencies {
-    compile libraries.bytebuddy, libraries.bytebuddyagent
-
-    compileOnly libraries.junit4, libraries.hamcrest, libraries.opentest4j
-    compile libraries.objenesis
-
-    testCompile libraries.asm
-
-    testCompile libraries.assertj
-
-    //putting 'provided' dependencies on test compile and runtime classpath
-    testCompileOnly configurations.compileOnly
-    testRuntime configurations.compileOnly
-
-    testUtil sourceSets.test.output
-}
-
-wrapper {
-    gradleVersion = '5.3.1'
-    distributionSha256Sum = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-}
-
-//Posting Build scans to https://scans.gradle.com
-buildScan {
-    termsOfServiceUrl = 'https://gradle.com/terms-of-service'
-    termsOfServiceAgree = 'yes'
-}
-
-spotless {
-    java {
-        licenseHeaderFile rootProject.file('config/spotless/spotless.header')
-
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-        indentWithSpaces(4)
-
-        importOrder 'static java', 'static javax', 'static ', 'java', 'javax', ''
-    }
-}
-
-
-//workaround for #1444, delete when Shipkit bug is fixed
-subprojects {
-	eclipse {
-		project {
-			name = rootProject.name + '-' + project.name
-		}
-	}
-
-    afterEvaluate {
-        def lib = publishing.publications.javaLibrary
-        if(lib && !lib.artifactId.startsWith("mockito-")) {
-            lib.artifactId = "mockito-" + lib.artifactId
-        }
-    }
-}
-//end workaround
